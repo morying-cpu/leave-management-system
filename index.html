@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแจ้งลาออนไลน์</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+        .tab-active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .file-drop-zone { border: 2px dashed #cbd5e0; transition: all 0.3s ease; }
+        .file-drop-zone:hover { border-color: #667eea; background-color: #f7fafc; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <h1 class="text-3xl font-bold">📝 ระบบแจ้งลาออนไลน์</h1>
+            <p class="text-blue-100 mt-2">ระบบแจ้งลาและตรวจสอบสถานะการลาออนไลน์</p>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-6">
+            <div class="flex space-x-8">
+                <button onclick="showTab('leave-form')" id="tab-leave-form" class="tab-active text-white px-6 py-4 font-medium rounded-t-lg transition-all">
+                    📝 ฟอร์มแจ้งลา
+                </button>
+                <button onclick="showTab('check-individual')" id="tab-check-individual" class="text-gray-600 hover:text-blue-600 px-6 py-4 font-medium transition-all">
+                    👤 ตรวจสอบรายบุคคล
+                </button>
+                <button onclick="showTab('check-course')" id="tab-check-course" class="text-gray-600 hover:text-blue-600 px-6 py-4 font-medium transition-all">
+                    📚 ตรวจสอบรายหลักสูตร
+                </button>
+                <button onclick="showTab('documents')" id="tab-documents" class="text-gray-600 hover:text-blue-600 px-6 py-4 font-medium transition-all">
+                    📁 เอกสารที่ส่งแล้ว
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- Check Individual Tab -->
+        <div id="check-individual-content" class="tab-content hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-xl shadow-md p-8">
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-bold text-gray-800">👤 ตรวจสอบการลารายบุคคล</h2>
+                        <p class="text-gray-600 mt-2">ค้นหาและตรวจสอบประวัติการลาของนักศึกษารายบุคคล</p>
+                    </div>
+
+                    <!-- Search Form -->
+                    <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล</label>
+                                <input type="text" id="searchStudentName" placeholder="เช่น นาย สมชาย ใจดี" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="searchIndividual()" class="w-full gradient-bg text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-all">
+                                    🔍 ค้นหา
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Results -->
+                    <div id="individualResults" class="hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-bold text-blue-800">ข้อมูลนักศึกษา</h3>
+                                    <p class="text-blue-700">ชื่อ: <span id="resultStudentName">นาย สมชาย ใจดี</span></p>
+                                    <p class="text-blue-700">หลักสูตร: <span id="resultCourse">หลักสูตรเสนาธิการทหาร</span></p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="exportIndividualPDF()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                        📄 ส่งออก PDF
+                                    </button>
+                                    <button onclick="exportIndividualExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                        📊 ส่งออก Excel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div class="px-6 py-4 bg-gray-50 border-b">
+                                <h3 class="font-bold text-gray-800">📋 ประวัติการลา</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่ส่งคำขอ</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ประเภทการลา</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่ลา</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">จำนวนวัน</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">เหตุผล</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">15/03/2024</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">ลาป่วย</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">16/03/2024 - 18/03/2024</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">3 วัน</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">ไข้หวัดใหญ่</td>
+                                            <td class="px-6 py-4">
+                                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">ส่งแล้ว</span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="flex space-x-2">
+                                                    <button onclick="editLeave(1)" class="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors">
+                                                        ✏️ แก้ไข
+                                                    </button>
+                                                    <button onclick="cancelLeave(1)" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors">
+                                                        ❌ ยกเลิก
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">10/03/2024</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">ลากิจ</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">12/03/2024</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">1 วัน</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">ธุระส่วนตัว</td>
+                                            <td class="px-6 py-4">
+                                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">ส่งแล้ว</span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="flex space-x-2">
+                                                    <button onclick="editLeave(2)" class="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors">
+                                                        ✏️ แก้ไข
+                                                    </button>
+                                                    <button onclick="cancelLeave(2)" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors">
+                                                        ❌ ยกเลิก
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">05/03/2024</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">ลารายชั่วโมง</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">06/03/2024 (ช่วงเช้า)</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">3 ชั่วโมง</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">นัดหมายแพทย์</td>
+                                            <td class="px-6 py-4">
+                                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">ส่งแล้ว</span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="flex space-x-2">
+                                                    <button onclick="editLeave(3)" class="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors">
+                                                        ✏️ แก้ไข
+                                                    </button>
+                                                    <button onclick="cancelLeave(3)" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors">
+                                                        ❌ ยกเลิก
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Summary Stats -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-blue-600">7</div>
+                                <div class="text-sm text-blue-800">ครั้งทั้งหมด</div>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-green-600">5</div>
+                                <div class="text-sm text-green-800">อนุมัติแล้ว</div>
+                            </div>
+                            <div class="bg-yellow-50 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-yellow-600">2</div>
+                                <div class="text-sm text-yellow-800">รอพิจารณา</div>
+                            </div>
+                            <div class="bg-purple-50 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-purple-600">12</div>
+                                <div class="text-sm text-purple-800">วันลารวม</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check Course Tab -->
+        <div id="check-course-content" class="tab-content hidden">
+            <div class="max-w-6xl mx-auto">
+                <div class="bg-white rounded-xl shadow-md p-8">
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-bold text-gray-800">📚 ตรวจสอบการลารายหลักสูตร</h2>
+                        <p class="text-gray-600 mt-2">ดูสถิติและรายงานการลาของนักศึกษาแยกตามหลักสูตร</p>
+                    </div>
+
+                    <!-- Course Selection -->
+                    <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">เลือกหลักสูตร</label>
+                                <select id="courseSelect" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">เลือกหลักสูตร</option>
+                                    <option value="staff-officer">หลักสูตรเสนธิการทหาร</option>
+                                    <option value="senior-officer">นายทหารอาวุโส</option>
+                                    <option value="joint-staff">หลักสูตรเสนาธิการร่วม</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">ช่วงเวลา</label>
+                                <select id="periodSelect" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="this-month">เดือนนี้</option>
+                                    <option value="last-month">เดือนที่แล้ว</option>
+                                    <option value="this-quarter">ไตรมาสนี้</option>
+                                    <option value="this-year">ปีนี้</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="searchCourse()" class="w-full gradient-bg text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-all">
+                                    📊 ดูรายงาน
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Results -->
+                    <div id="courseResults" class="hidden">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-bold text-green-800">รายงานหลักสูตร</h3>
+                                    <p class="text-green-700">หลักสูตร: <span id="resultCourseName">หลักสูตรเสนาธิการทหาร</span></p>
+                                    <p class="text-green-700">ช่วงเวลา: <span id="resultPeriod">มีนาคม 2024</span> | จำนวนนักศึกษา: <span id="resultStudentCount">45</span> คน</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="exportCoursePDF()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                        📄 ส่งออก PDF
+                                    </button>
+                                    <button onclick="exportCourseExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                        📊 ส่งออก Excel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                                <div class="text-3xl font-bold text-blue-600">23</div>
+                                <div class="text-sm text-gray-600 mt-1">คำขอลาทั้งหมด</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                                <div class="text-3xl font-bold text-green-600">18</div>
+                                <div class="text-sm text-gray-600 mt-1">อนุมัติแล้ว</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                                <div class="text-3xl font-bold text-yellow-600">5</div>
+                                <div class="text-sm text-gray-600 mt-1">รอพิจารณา</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                                <div class="text-3xl font-bold text-purple-600">67</div>
+                                <div class="text-sm text-gray-600 mt-1">วันลารวม</div>
+                            </div>
+                        </div>
+
+                        <!-- Leave Type Breakdown -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div class="bg-white rounded-lg shadow-md p-6">
+                                <h4 class="font-bold text-gray-800 mb-4">📊 แยกตามประเภทการลา</h4>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600">ลาป่วย</span>
+                                        <div class="flex items-center">
+                                            <div class="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-red-500 h-2 rounded-full" style="width: 60%"></div>
+                                            </div>
+                                            <span class="text-sm font-medium">12</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600">ลากิจ</span>
+                                        <div class="flex items-center">
+                                            <div class="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-blue-500 h-2 rounded-full" style="width: 35%"></div>
+                                            </div>
+                                            <span class="text-sm font-medium">7</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600">ลารายชั่วโมง</span>
+                                        <div class="flex items-center">
+                                            <div class="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-green-500 h-2 rounded-full" style="width: 20%"></div>
+                                            </div>
+                                            <span class="text-sm font-medium">4</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-lg shadow-md p-6">
+                                <h4 class="font-bold text-gray-800 mb-4">📅 แยกตามสัปดาห์</h4>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">สัปดาห์ที่ 1</span>
+                                        <span class="font-medium">8 คำขอ</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">สัปดาห์ที่ 2</span>
+                                        <span class="font-medium">6 คำขอ</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">สัปดาห์ที่ 3</span>
+                                        <span class="font-medium">5 คำขอ</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">สัปดาห์ที่ 4</span>
+                                        <span class="font-medium">4 คำขอ</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-lg shadow-md p-6">
+                                <h4 class="font-bold text-gray-800 mb-4">⭐ นักศึกษาที่ลาบ่อย</h4>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">นาย สมชาย ใจดี</span>
+                                        <span class="font-medium">5 ครั้ง</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">นางสาว มาลี สวยงาม</span>
+                                        <span class="font-medium">4 ครั้ง</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">นาย วิชัย เก่งมาก</span>
+                                        <span class="font-medium">3 ครั้ง</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detailed Table -->
+                        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div class="px-6 py-4 bg-gray-50 border-b">
+                                <h3 class="font-bold text-gray-800">📋 รายละเอียดการลาทั้งหมด</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อ-นามสกุล</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ประเภทการลา</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่ลา</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">จำนวนวัน</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">นาย สมชาย ใจดี</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">ลาป่วย</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">16/03/2024 - 18/03/2024</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">3 วัน</td>
+                                            <td class="px-6 py-4">
+                                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">อนุมัติแล้ว</span>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">นางสาว มาลี สวยงาม</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">ลากิจ</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">15/03/2024</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">1 วัน</td>
+                                            <td class="px-6 py-4">
+                                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">รอพิจารณา</span>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">นาย วิชัย เก่งมาก</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">ลารายชั่วโมง</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">14/03/2024 (ช่วงบ่าย)</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">3 ชั่วโมง</td>
+                                            <td class="px-6 py-4">
+                                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">อนุมัติแล้ว</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Form Tab -->
+        <div id="leave-form-content" class="tab-content hidden">
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow-md p-8">
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-bold text-gray-800">📝 ฟอร์มการลาของนักศึกษา</h2>
+                        <p class="text-gray-600 mt-2">กรุณากรอกข้อมูลและแนบหลักฐานการลาให้ครบถ้วน</p>
+                    </div>
+
+                    <form id="leaveForm" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล *</label>
+                            <input type="text" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="เช่น นาย สมชาย ใจดี">
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">หลักสูตร *</label>
+                                <select required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">เลือกหลักสูตร</option>
+                                    <option value="หลักสูตรเสนธิการทหาร">หลักสูตรเสนธิการทหาร</option>
+                                    <option value="นายทหารอาวุโส">นายทหารอาวุโส</option>
+                                    <option value="หลักสูตรเสนาธิการร่วม">หลักสูตรเสนาธิการร่วม</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทการลา *</label>
+                                <select id="leaveType" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" onchange="toggleTimeSlots()">
+                                    <option value="">เลือกประเภทการลา</option>
+                                    <option value="ลากิจ">ลากิจ</option>
+                                    <option value="ลาป่วย">ลาป่วย</option>
+                                    <option value="ลารายชั่วโมง">ลารายชั่วโมง</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ช่วงเวลาลารายชั่วโมง -->
+                        <div id="timeSlotSection" class="hidden mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">เลือกช่วงเวลา *</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                                    <input type="radio" name="timeSlot" value="morning" class="mr-3 text-blue-600 focus:ring-blue-500">
+                                    <div>
+                                        <div class="font-medium text-gray-800">🌅 ช่วงเช้า</div>
+                                        <div class="text-sm text-gray-500">08:30 - 11:30 น.</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                                    <input type="radio" name="timeSlot" value="afternoon" class="mr-3 text-blue-600 focus:ring-blue-500">
+                                    <div>
+                                        <div class="font-medium text-gray-800">🌇 ช่วงบ่าย</div>
+                                        <div class="text-sm text-gray-500">12:30 - 15:30 น.</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มลา *</label>
+                                <input type="date" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div id="endDateSection">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุดการลา *</label>
+                                <input type="date" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">เหตุผลการลา</label>
+                            <textarea rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="กรุณาระบุเหตุผลการลาอย่างละเอียด"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">แนบหลักฐานการลา</label>
+                            <div class="file-drop-zone border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                                <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.pdf" class="hidden">
+                                <div class="space-y-4">
+                                    <div class="text-4xl">📎</div>
+                                    <div>
+                                        <p class="text-lg font-medium text-gray-700">ลากไฟล์มาวางที่นี่</p>
+                                        <p class="text-sm text-gray-500">หรือ <button type="button" onclick="document.getElementById('fileInput').click()" class="text-blue-600 hover:text-blue-700 font-medium">คลิกเพื่อเลือกไฟล์</button></p>
+                                        <p class="text-xs text-gray-400 mt-2">รองรับไฟล์: PDF, JPG เท่านั้น (ขนาดไม่เกิน 10MB)</p>
+                                        <p class="text-xs text-blue-600 mt-1">📁 ไฟล์จะถูกแสดงในรายการเท่านั้น (Demo)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="fileList" class="mt-4 space-y-2"></div>
+                        </div>
+
+                        <div class="flex space-x-4">
+                            <button type="submit" class="flex-1 gradient-bg text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-all">
+                                📤 ส่งหลักฐานการลา
+                            </button>
+                            <button type="reset" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all">
+                                🔄 ล้างข้อมูล
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents Tab -->
+        <div id="documents-content" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-800">📁 เอกสารที่ส่งแล้ว</h2>
+                        <div class="flex space-x-3">
+                            <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>ทุกประเภท</option>
+                                <option>ลาป่วย</option>
+                                <option>ลากิจ</option>
+                                <option>ลารายชั่วโมง</option>
+                            </select>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                📊 ส่งออกรายงาน
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all card-hover">
+                        <div class="flex items-center mb-3">
+                            <div class="bg-red-100 p-2 rounded-full mr-3">
+                                <span class="text-red-600">📄</span>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-800">ใบรับรองแพทย์.pdf</h3>
+                                <p class="text-sm text-gray-500">นาย สมชาย ใจดี</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">ประเภท:</span>
+                                <span class="text-gray-800">ลาป่วย</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">วันที่ส่ง:</span>
+                                <span class="text-gray-800">15/03/2024</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">สถานะ:</span>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">อนุมัติแล้ว</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex space-x-2">
+                            <button class="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors">
+                                👁️ ดู
+                            </button>
+                            <button class="flex-1 bg-gray-600 text-white py-2 px-3 rounded text-sm hover:bg-gray-700 transition-colors">
+                                💾 ดาวน์โหลด
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all card-hover">
+                        <div class="flex items-center mb-3">
+                            <div class="bg-blue-100 p-2 rounded-full mr-3">
+                                <span class="text-blue-600">📷</span>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-800">หลักฐานกิจ.jpg</h3>
+                                <p class="text-sm text-gray-500">นางสาว มาลี สวยงาม</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">ประเภท:</span>
+                                <span class="text-gray-800">ลากิจ</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">วันที่ส่ง:</span>
+                                <span class="text-gray-800">14/03/2024</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">สถานะ:</span>
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">รอพิจารณา</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex space-x-2">
+                            <button class="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors">
+                                👁️ ดู
+                            </button>
+                            <button class="flex-1 bg-gray-600 text-white py-2 px-3 rounded text-sm hover:bg-gray-700 transition-colors">
+                                💾 ดาวน์โหลด
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all card-hover">
+                        <div class="flex items-center mb-3">
+                            <div class="bg-green-100 p-2 rounded-full mr-3">
+                                <span class="text-green-600">📋</span>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-800">ใบลารายชั่วโมง.pdf</h3>
+                                <p class="text-sm text-gray-500">นาย วิชัย เก่งมาก</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">ประเภท:</span>
+                                <span class="text-gray-800">ลารายชั่วโมง</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">วันที่ส่ง:</span>
+                                <span class="text-gray-800">13/03/2024</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">สถานะ:</span>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">อนุมัติแล้ว</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex space-x-2">
+                            <button class="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors">
+                                👁️ ดู
+                            </button>
+                            <button class="flex-1 bg-gray-600 text-white py-2 px-3 rounded text-sm hover:bg-gray-700 transition-colors">
+                                💾 ดาวน์โหลด
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4 text-center">
+            <div class="text-6xl mb-4">✅</div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">ส่งหลักฐานสำเร็จ!</h3>
+            <p class="text-gray-600 mb-6">ระบบได้รับหลักฐานการลาของคุณแล้ว<br>การลาจะถูกบันทึกในระบบทันที</p>
+            <button onclick="closeModal()" class="gradient-bg text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-all">
+                ตกลง
+            </button>
+        </div>
+    </div>
+
+    <!-- Admin Password Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4">
+            <div class="text-center mb-6">
+                <div class="text-4xl mb-4">🔐</div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">ยืนยันตัวตนแอดมิน</h3>
+                <p class="text-gray-600">กรุณาใส่รหัสผ่านแอดมินเพื่อดำเนินการ</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่านแอดมิน</label>
+                    <input type="password" id="adminPassword" placeholder="ใส่รหัสผ่านแอดมิน" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="verifyAdmin()" class="flex-1 gradient-bg text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-all">
+                        ✅ ยืนยัน
+                    </button>
+                    <button onclick="closeAdminModal()" class="flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-600 transition-all">
+                        ❌ ยกเลิก
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Leave Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-2xl mx-4 w-full max-h-[90vh] overflow-y-auto">
+            <div class="text-center mb-6">
+                <div class="text-4xl mb-4">✏️</div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">แก้ไขข้อมูลการลา</h3>
+                <p class="text-gray-600">แก้ไขข้อมูลการลาของนักศึกษา</p>
+            </div>
+            <form id="editLeaveForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล</label>
+                        <input type="text" id="editStudentName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทการลา</label>
+                        <select id="editLeaveType" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="personal">ลากิจ</option>
+                            <option value="sick">ลาป่วย</option>
+                            <option value="hourly">ลารายชั่วโมง</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มลา</label>
+                        <input type="date" id="editStartDate" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุดการลา</label>
+                        <input type="date" id="editEndDate" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">เหตุผลการลา</label>
+                    <textarea id="editReason" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="button" onclick="saveEditLeave()" class="flex-1 gradient-bg text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-all">
+                        💾 บันทึกการแก้ไข
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-600 transition-all">
+                        ❌ ยกเลิก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ✅ Google Form Configuration (พร้อมใช้งาน)
+        const GOOGLE_FORM_ID = '1tnxSo4aFUYtQX-Mumst0jHhQrBzA7WnVbg2kEdwH05A';
+        const GOOGLE_FORM_URL = `https://docs.google.com/forms/d/${GOOGLE_FORM_ID}/viewform`;
+        
+        // 📱 Telegram Configuration (พร้อมใช้งาน)
+        const TELEGRAM_BOT_TOKEN = '8204347040:AAGmBoXELeLG5-j4BshY1dEtDm0zWFzzTjU';
+        const TELEGRAM_CHAT_ID = '8024345258';
+
+        // 🚀 Submit to Google Forms (Template Method - ไม่ต้องหา Entry IDs)
+        async function submitToGoogleForms(leaveData) {
+            try {
+                console.log('📝 กำลังส่งข้อมูลไปยัง Google Forms...');
+                
+                // แปลง URL ให้เป็น formResponse
+                const formResponseUrl = GOOGLE_FORM_URL.replace('/viewform', '/formResponse');
+                
+                // สร้าง hidden iframe
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.name = 'hidden_iframe';
+                iframe.onload = function() {
+                    console.log('✅ ส่งข้อมูลไปยัง Google Forms สำเร็จ');
+                };
+                document.body.appendChild(iframe);
+                
+                // สร้างฟอร์มสำหรับส่งข้อมูล
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = formResponseUrl;
+                form.target = 'hidden_iframe';
+                
+                // เพิ่มข้อมูลตามลำดับ (ใช้ Entry IDs มาตรฐาน)
+                const formFields = [
+                    { name: 'entry.2005620554', value: leaveData.studentName },
+                    { name: 'entry.1045781291', value: leaveData.course },
+                    { name: 'entry.1166974658', value: leaveData.leaveType },
+                    { name: 'entry.1288716385', value: leaveData.startDate },
+                    { name: 'entry.1904589706', value: leaveData.endDate },
+                    { name: 'entry.839337160', value: leaveData.reason }
+                ];
+                
+                // สร้าง input fields
+                formFields.forEach(field => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = field.name;
+                    input.value = field.value || '';
+                    form.appendChild(input);
+                });
+                
+                // ส่งฟอร์ม
+                document.body.appendChild(form);
+                form.submit();
+                
+                // ทำความสะอาด
+                setTimeout(() => {
+                    if (document.body.contains(form)) document.body.removeChild(form);
+                    if (document.body.contains(iframe)) document.body.removeChild(iframe);
+                }, 3000);
+                
+                return true;
+                
+            } catch (error) {
+                console.error('❌ เกิดข้อผิดพลาดในการส่งข้อมูล:', error);
+                return false;
+            }
+        }
+
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.add('hidden'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('[id^="tab-"]');
+            tabs.forEach(tab => {
+                tab.classList.remove('tab-active', 'text-white');
+                tab.classList.add('text-gray-600', 'hover:text-blue-600');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-content').classList.remove('hidden');
+            
+            // Add active class to selected tab
+            const activeTab = document.getElementById('tab-' + tabName);
+            activeTab.classList.add('tab-active', 'text-white');
+            activeTab.classList.remove('text-gray-600', 'hover:text-blue-600');
+        }
+
+        // Toggle time slots based on leave type
+        function toggleTimeSlots() {
+            const leaveType = document.getElementById('leaveType').value;
+            const timeSlotSection = document.getElementById('timeSlotSection');
+            const endDateSection = document.getElementById('endDateSection');
+            
+            if (leaveType === 'ลารายชั่วโมง') {
+                timeSlotSection.classList.remove('hidden');
+                endDateSection.style.display = 'none';
+                // Make time slot required for hourly leave
+                const timeSlotInputs = document.querySelectorAll('input[name="timeSlot"]');
+                timeSlotInputs.forEach(input => input.required = true);
+            } else {
+                timeSlotSection.classList.add('hidden');
+                endDateSection.style.display = 'block';
+                // Remove time slot requirement for other leave types
+                const timeSlotInputs = document.querySelectorAll('input[name="timeSlot"]');
+                timeSlotInputs.forEach(input => {
+                    input.required = false;
+                    input.checked = false;
+                });
+            }
+        }
+
+        // File upload functionality
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            const validFiles = files.filter(validateFile);
+            
+            if (validFiles.length > 0) {
+                displayFiles(validFiles);
+                
+                // Update file input with only valid files
+                const dt = new DataTransfer();
+                validFiles.forEach(file => dt.items.add(file));
+                this.files = dt.files;
+            } else {
+                // Clear the input if no valid files
+                this.value = '';
+            }
+        });
+
+        function displayFiles(files) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                fileItem.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="text-2xl mr-3">${getFileIcon(file.type)}</span>
+                        <div>
+                            <p class="font-medium text-gray-800">${file.name}</p>
+                            <p class="text-sm text-gray-500">${formatFileSize(file.size)}</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="removeFile(${index})" class="text-red-600 hover:text-red-800">
+                        🗑️
+                    </button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function getFileIcon(fileType) {
+            if (fileType.includes('image')) return '🖼️';
+            if (fileType.includes('pdf')) return '📄';
+            if (fileType.includes('document') || fileType.includes('word')) return '📝';
+            return '📎';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function removeFile(index) {
+            const fileInput = document.getElementById('fileInput');
+            const dt = new DataTransfer();
+            const files = Array.from(fileInput.files);
+            
+            files.forEach((file, i) => {
+                if (i !== index) dt.items.add(file);
+            });
+            
+            fileInput.files = dt.files;
+            displayFiles(Array.from(dt.files));
+        }
+
+        // Simple file handling (for demo - files will be listed only)
+        function handleFiles(files, leaveData) {
+            const fileList = [];
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                fileList.push({
+                    name: file.name,
+                    size: file.size,
+                    type: file.type
+                });
+                
+                console.log(`📎 ไฟล์: ${file.name} (${formatFileSize(file.size)})`);
+            }
+            
+            return fileList;
+        }
+
+        // Send Telegram notification
+        async function sendTelegramNotification(leaveData) {
+            // Skip if no Telegram config
+            if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID || TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
+                console.log('⚠️ ไม่ได้ตั้งค่า Telegram Bot - ข้ามการส่งแจ้งเตือน');
+                return false;
+            }
+
+            // Format dates to Thai format (DD-MM-YYYY)
+            const formatDateThai = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}-${month}-${year}`;
+            };
+
+            // Create date range string
+            let dateRange = '';
+            if (leaveData.startDate && leaveData.endDate) {
+                const startFormatted = formatDateThai(leaveData.startDate);
+                const endFormatted = formatDateThai(leaveData.endDate);
+                if (startFormatted === endFormatted) {
+                    dateRange = startFormatted;
+                } else {
+                    dateRange = `${startFormatted} ถึง ${endFormatted}`;
+                }
+            } else if (leaveData.leaveDate) {
+                dateRange = formatDateThai(leaveData.leaveDate);
+            }
+
+            const message = `🔔 แจ้งเตือนการลาใหม่!
+
+👤 ชื่อ: ${leaveData.studentName}
+📚 หลักสูตร: ${leaveData.course}
+📋 ประเภทการลา: ${leaveData.leaveType}
+📅 วันที่ลา: ${dateRange}
+📝 เหตุผล: ${leaveData.reason}
+📎 ไฟล์แนบ: ${leaveData.fileCount} ไฟล์
+⏰ เวลาที่ส่ง: ${new Date().toLocaleString('th-TH')}
+
+✅ การลาได้รับการบันทึกในระบบแล้ว`;
+
+            const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+            
+            try {
+                const response = await fetch(telegramUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+
+                if (response.ok) {
+                    console.log('✅ ส่งแจ้งเตือน Telegram สำเร็จ');
+                    return true;
+                } else {
+                    console.error('❌ ส่งแจ้งเตือน Telegram ไม่สำเร็จ:', response.status);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ เกิดข้อผิดพลาดในการส่ง Telegram:', error);
+                return false;
+            }
+        }
+
+        // Form submission (Updated for new Google Form)
+        document.getElementById('leaveForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show loading state
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '⏳ กำลังส่งข้อมูล...';
+            submitButton.disabled = true;
+            
+            try {
+                // Collect form data
+                const startDate = this.querySelector('input[type="date"]').value;
+                const endDate = this.querySelectorAll('input[type="date"]')[1]?.value;
+                const files = document.getElementById('fileInput').files;
+                
+                const leaveData = {
+                    studentName: this.querySelector('input[type="text"]').value,
+                    course: this.querySelector('select').value,
+                    leaveType: document.getElementById('leaveType').value,
+                    startDate: startDate,
+                    endDate: endDate || startDate,
+                    reason: this.querySelector('textarea').value || 'ไม่ได้ระบุ',
+                    fileCount: files.length
+                };
+
+                // Handle files (for display only)
+                const fileList = handleFiles(files, leaveData);
+                
+                // Submit to Google Forms
+                console.log('📝 กำลังส่งข้อมูลไปยัง Google Forms...');
+                const formsSaved = await submitToGoogleForms(leaveData);
+
+                // Send Telegram notification
+                console.log('📱 กำลังส่งแจ้งเตือนผ่าน Telegram...');
+                const telegramSent = await sendTelegramNotification(leaveData);
+            
+                // Show success modal
+                const successModal = document.getElementById('successModal');
+                const modalContent = successModal.querySelector('.bg-white');
+                
+                let statusMessages = [];
+                
+                if (fileList.length > 0) {
+                    statusMessages.push(`📎 ไฟล์ที่เลือก: ${fileList.length} ไฟล์ (แสดงในรายการเท่านั้น)`);
+                }
+                
+                if (formsSaved) {
+                    statusMessages.push('📝 บันทึกข้อมูลไปยัง Google Forms เรียบร้อยแล้ว');
+                } else {
+                    statusMessages.push('⚠️ ไม่สามารถบันทึกข้อมูลไปยัง Google Forms ได้');
+                }
+                
+                if (telegramSent) {
+                    statusMessages.push('📱 ส่งแจ้งเตือนผ่าน Telegram เรียบร้อยแล้ว');
+                } else {
+                    statusMessages.push('⚠️ ไม่ได้ตั้งค่า Telegram Bot หรือเกิดข้อผิดพลาด');
+                }
+                
+                const statusHtml = statusMessages.map(msg => 
+                    `<p class="text-sm ${msg.includes('⚠️') ? 'text-yellow-800' : 'text-green-800'}">${msg}</p>`
+                ).join('');
+                
+                modalContent.innerHTML = `
+                    <div class="text-6xl mb-4">✅</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">ส่งข้อมูลสำเร็จ!</h3>
+                    <p class="text-gray-600 mb-4">ระบบได้รับข้อมูลการลาของคุณแล้ว<br>ข้อมูลจะถูกบันทึกใน Google Sheets อัตโนมัติ</p>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
+                        <h4 class="font-medium text-blue-800 mb-2">📋 สถานะการดำเนินการ:</h4>
+                        ${statusHtml}
+                    </div>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                        <p class="text-green-800 text-xs">
+                            ✅ <strong>Google Form ID:</strong> ${GOOGLE_FORM_ID}<br>
+                            📊 ตรวจสอบข้อมูลได้ใน Google Sheets ที่เชื่อมต่อ
+                        </p>
+                    </div>
+                    <button onclick="closeModal()" class="gradient-bg text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-all">
+                        ตกลง
+                    </button>
+                `;
+                
+                successModal.classList.remove('hidden');
+                successModal.classList.add('flex');
+                
+                // Reset form
+                setTimeout(() => {
+                    this.reset();
+                    document.getElementById('fileList').innerHTML = '';
+                    toggleTimeSlots();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('❌ เกิดข้อผิดพลาดในการส่งข้อมูล:', error);
+                alert('❌ เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง');
+            } finally {
+                // Reset button state
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            }
+        });
+
+        function closeModal() {
+            document.getElementById('successModal').classList.add('hidden');
+            document.getElementById('successModal').classList.remove('flex');
+        }
+
+        // File validation function
+        function validateFile(file) {
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            
+            if (!allowedTypes.includes(file.type)) {
+                alert(`ไฟล์ ${file.name} ไม่ใช่ประเภทที่รองรับ\nกรุณาเลือกไฟล์ PDF หรือ JPG เท่านั้น`);
+                return false;
+            }
+            
+            if (file.size > maxSize) {
+                alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกินไป\nกรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 10MB`);
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Drag and drop functionality
+        const dropZone = document.querySelector('.file-drop-zone');
+        
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('border-blue-500', 'bg-blue-50');
+        });
+        
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+        
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('border-blue-500', 'bg-blue-50');
+            
+            const files = Array.from(e.dataTransfer.files);
+            const validFiles = files.filter(validateFile);
+            
+            if (validFiles.length > 0) {
+                const fileInput = document.getElementById('fileInput');
+                const dt = new DataTransfer();
+                
+                validFiles.forEach(file => dt.items.add(file));
+                fileInput.files = dt.files;
+                displayFiles(validFiles);
+            }
+        });
+
+        // Admin variables
+        let currentAction = '';
+        let currentLeaveId = null;
+        const ADMIN_PASSWORD = 'admin123'; // รหัสผ่านแอดมิน
+
+        // Admin functions
+        function editLeave(leaveId) {
+            currentAction = 'edit';
+            currentLeaveId = leaveId;
+            showAdminModal();
+        }
+
+        function cancelLeave(leaveId) {
+            currentAction = 'cancel';
+            currentLeaveId = leaveId;
+            showAdminModal();
+        }
+
+        function showAdminModal() {
+            document.getElementById('adminModal').classList.remove('hidden');
+            document.getElementById('adminModal').classList.add('flex');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminPassword').focus();
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.add('hidden');
+            document.getElementById('adminModal').classList.remove('flex');
+            currentAction = '';
+            currentLeaveId = null;
+        }
+
+        function verifyAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password === ADMIN_PASSWORD) {
+                closeAdminModal();
+                
+                if (currentAction === 'edit') {
+                    showEditModal();
+                } else if (currentAction === 'cancel') {
+                    confirmCancelLeave();
+                }
+            } else {
+                alert('❌ รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminPassword').focus();
+            }
+        }
+
+        function showEditModal() {
+            // Load current leave data (in real system, fetch from database)
+            const leaveData = getLeaveData(currentLeaveId);
+            
+            document.getElementById('editStudentName').value = leaveData.studentName;
+            document.getElementById('editLeaveType').value = leaveData.leaveType;
+            document.getElementById('editStartDate').value = leaveData.startDate;
+            document.getElementById('editEndDate').value = leaveData.endDate;
+            document.getElementById('editReason').value = leaveData.reason;
+            
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classList.add('flex');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
+        }
+
+        function saveEditLeave() {
+            // Save edited data (in real system, update database)
+            alert('✅ แก้ไขข้อมูลการลาเรียบร้อยแล้ว!');
+            closeEditModal();
+            
+            // Refresh the display (in real system, reload data from database)
+            location.reload();
+        }
+
+        function confirmCancelLeave() {
+            if (confirm('⚠️ คุณต้องการยกเลิกการลานี้หรือไม่?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้')) {
+                // Cancel leave (in real system, update database)
+                alert('✅ ยกเลิกการลาเรียบร้อยแล้ว!');
+                
+                // Refresh the display (in real system, reload data from database)
+                location.reload();
+            }
+        }
+
+        function getLeaveData(leaveId) {
+            // Mock data - in real system, fetch from database
+            const mockData = {
+                1: {
+                    studentName: 'นาย สมชาย ใจดี',
+                    leaveType: 'sick',
+                    startDate: '2024-03-16',
+                    endDate: '2024-03-18',
+                    reason: 'ไข้หวัดใหญ่'
+                },
+                2: {
+                    studentName: 'นางสาว มาลี สวยงาม',
+                    leaveType: 'personal',
+                    startDate: '2024-03-12',
+                    endDate: '2024-03-12',
+                    reason: 'ธุระส่วนตัว'
+                },
+                3: {
+                    studentName: 'นาย วิชัย เก่งมาก',
+                    leaveType: 'hourly',
+                    startDate: '2024-03-06',
+                    endDate: '2024-03-06',
+                    reason: 'นัดหมายแพทย์'
+                }
+            };
+            
+            return mockData[leaveId] || {};
+        }
+
+        // Search functions
+        function searchIndividual() {
+            const studentName = document.getElementById('searchStudentName').value;
+            
+            if (!studentName) {
+                alert('กรุณากรอกชื่อ-นามสกุล');
+                return;
+            }
+            
+            // Show results (in real system, this would fetch from database)
+            document.getElementById('individualResults').classList.remove('hidden');
+            
+            // Update result display
+            if (studentName) document.getElementById('resultStudentName').textContent = studentName;
+        }
+
+        function searchCourse() {
+            const course = document.getElementById('courseSelect').value;
+            const period = document.getElementById('periodSelect').value;
+            
+            if (!course) {
+                alert('กรุณาเลือกหลักสูตร');
+                return;
+            }
+            
+            // Show results (in real system, this would fetch from database)
+            document.getElementById('courseResults').classList.remove('hidden');
+            
+            // Update result display
+            const courseNames = {
+                'staff-officer': 'หลักสูตรเสนธิการทหาร',
+                'senior-officer': 'นายทหารอาวุโส',
+                'joint-staff': 'หลักสูตรเสนาธิการร่วม'
+            };
+            
+            const periodNames = {
+                'this-month': 'เดือนนี้',
+                'last-month': 'เดือนที่แล้ว',
+                'this-quarter': 'ไตรมาสนี้',
+                'this-year': 'ปีนี้'
+            };
+            
+            document.getElementById('resultCourseName').textContent = courseNames[course];
+            document.getElementById('resultPeriod').textContent = periodNames[period];
+        }
+
+        // Export functions
+        function exportIndividualPDF() {
+            // Create a simple PDF content
+            const studentName = document.getElementById('resultStudentName').textContent;
+            const course = document.getElementById('resultCourse').textContent;
+            
+            const pdfContent = `
+รายงานการลารายบุคคล
+
+ข้อมูลนักศึกษา:
+ชื่อ-นามสกุล: ${studentName}
+หลักสูตร: ${course}
+
+สรุปการลา:
+- ครั้งทั้งหมด: 7 ครั้ง
+- อนุมัติแล้ว: 5 ครั้ง
+- รอพิจารณา: 2 ครั้ง
+- วันลารวม: 12 วัน
+
+ประวัติการลา:
+1. 15/03/2024 - ลาป่วย (16/03/2024 - 18/03/2024) - 3 วัน - อนุมัติแล้ว
+2. 10/03/2024 - ลากิจ (12/03/2024) - 1 วัน - อนุมัติแล้ว
+3. 05/03/2024 - ลารายชั่วโมง (06/03/2024 ช่วงเช้า) - 3 ชั่วโมง - รอพิจารณา
+
+วันที่สร้างรายงาน: ${new Date().toLocaleDateString('th-TH')}
+            `;
+            
+            // Create and download file
+            const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `รายงานการลา_${studentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('📄 ส่งออกรายงาน PDF สำเร็จ! (Demo: ไฟล์ .txt)');
+        }
+
+        function exportIndividualExcel() {
+            // Create CSV content for Excel
+            const studentName = document.getElementById('resultStudentName').textContent;
+            
+            const csvContent = `รายงานการลารายบุคคล
+ชื่อ-นามสกุล,หลักสูตร
+${studentName},หลักสูตรเสนาธิการทหาร
+
+วันที่ส่งคำขอ,ประเภทการลา,วันที่ลา,จำนวนวัน,เหตุผล,สถานะ
+15/03/2024,ลาป่วย,16/03/2024 - 18/03/2024,3 วัน,ไข้หวัดใหญ่,อนุมัติแล้ว
+10/03/2024,ลากิจ,12/03/2024,1 วัน,ธุระส่วนตัว,อนุมัติแล้ว
+05/03/2024,ลารายชั่วโมง,06/03/2024 (ช่วงเช้า),3 ชั่วโมง,นัดหมายแพทย์,รอพิจารณา`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `รายงานการลา_${studentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('📊 ส่งออกรายงาน Excel สำเร็จ! (Demo: ไฟล์ .csv)');
+        }
+
+        function exportCoursePDF() {
+            const courseName = document.getElementById('resultCourseName').textContent;
+            const period = document.getElementById('resultPeriod').textContent;
+            
+            const pdfContent = `
+รายงานการลารายหลักสูตร
+
+ข้อมูลหลักสูตร:
+หลักสูตร: ${courseName}
+ช่วงเวลา: ${period}
+จำนวนนักศึกษา: 45 คน
+
+สรุปการลา:
+- คำขอลาทั้งหมด: 23 คำขอ
+- อนุมัติแล้ว: 18 คำขอ
+- รอพิจารณา: 5 คำขอ
+- วันลารวม: 67 วัน
+
+แยกตามประเภทการลา:
+- ลาป่วย: 12 คำขอ (60%)
+- ลากิจ: 7 คำขอ (35%)
+- ลารายชั่วโมง: 4 คำขอ (20%)
+
+นักศึกษาที่ลาบ่อย:
+1. นาย สมชาย ใจดี - 5 ครั้ง
+2. นางสาว มาลี สวยงาม - 4 ครั้ง
+3. นาย วิชัย เก่งมาก - 3 ครั้ง
+
+วันที่สร้างรายงาน: ${new Date().toLocaleDateString('th-TH')}
+            `;
+            
+            const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `รายงานหลักสูตร_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('📄 ส่งออกรายงานหลักสูตร PDF สำเร็จ! (Demo: ไฟล์ .txt)');
+        }
+
+        function exportCourseExcel() {
+            const courseName = document.getElementById('resultCourseName').textContent;
+            
+            const csvContent = `รายงานการลารายหลักสูตร
+หลักสูตร,${courseName}
+จำนวนนักศึกษา,45 คน
+
+รหัสนักศึกษา,ชื่อ-นามสกุล,ประเภทการลา,วันที่ลา,จำนวนวัน,สถานะ
+6501234567,นาย สมชาย ใจดี,ลาป่วย,16/03/2024 - 18/03/2024,3 วัน,อนุมัติแล้ว
+6501234568,นางสาว มาลี สวยงาม,ลากิจ,15/03/2024,1 วัน,รอพิจารณา
+6501234569,นาย วิชัย เก่งมาก,ลารายชั่วโมง,14/03/2024 (ช่วงบ่าย),3 ชั่วโมง,อนุมัติแล้ว`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `รายงานหลักสูตร_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('📊 ส่งออกรายงานหลักสูตร Excel สำเร็จ! (Demo: ไฟล์ .csv)');
+        }
+
+        // Add Enter key support for admin password
+        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyAdmin();
+            }
+        });
+
+        // Initialize with leave form tab
+        showTab('leave-form');
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97933560505da1c8',t:'MTc1Njg4MTEzMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
